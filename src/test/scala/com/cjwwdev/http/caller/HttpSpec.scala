@@ -16,11 +16,14 @@
 
 package com.cjwwdev.http.caller
 
+import akka.util.ByteString
 import com.cjwwdev.http.wiremock.{StubbedBasicHttpCalls, WireMockSetup}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.PlaySpec
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.{Json, OFormat}
+import play.api.libs.ws.{BodyWritable, InMemoryBody}
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -53,17 +56,27 @@ class HttpSpec extends PlaySpec
 
   val testHttp: DefaultHttp = app.injector.instanceOf[DefaultHttp]
 
+  case class TestModel(str: String, int: Int)
+
+  object TestModel {
+    implicit val format: OFormat[TestModel] = Json.format[TestModel]
+  }
+
+  implicit val writer: BodyWritable[TestModel] = {
+    BodyWritable(model => InMemoryBody(ByteString(Json.toJson(model).toString())), "application/json")
+  }
+
   "head" should {
     "return a 200" in {
       stubbedHead("/test/head", 200)
-      val res = await(testHttp.head(s"http://localhost:${wiremockPort}/test/head", Seq()))
+      val res = await(testHttp.head(s"http://localhost:$wiremockPort/test/head", Seq()))
       assert(res.isRight)
       assert(res.exists(_.status == 200))
     }
 
     "return a 404" in {
       stubbedHead("/test/head", 404)
-      val res = await(testHttp.head(s"http://localhost:${wiremockPort}/test/head", Seq()))
+      val res = await(testHttp.head(s"http://localhost:$wiremockPort/test/head", Seq()))
       assert(res.isLeft)
       assert(res.left.exists(_.status == 404))
     }
@@ -72,14 +85,14 @@ class HttpSpec extends PlaySpec
   "get" should {
     "return a 200" in {
       stubbedGet("/test/get", 200, "testing testing")
-      val res = await(testHttp.get(s"http://localhost:${wiremockPort}/test/get", Seq()))
+      val res = await(testHttp.get(s"http://localhost:$wiremockPort/test/get", Seq()))
       assert(res.isRight)
       assert(res.exists(_.status == 200))
     }
 
     "return a 404" in {
       stubbedGet("/test/get", 404, """{ "errorMessage" : "test123" }""")
-      val res = await(testHttp.get(s"http://localhost:${wiremockPort}/test/get", Seq()))
+      val res = await(testHttp.get(s"http://localhost:$wiremockPort/test/get", Seq()))
       assert(res.isLeft)
       assert(res.left.exists(_.status == 404))
     }
@@ -88,14 +101,32 @@ class HttpSpec extends PlaySpec
   "post" should {
     "return a 200" in {
       stubbedPost("/test/post", 200, """{ "test" : "test123" }""")
-      val res = await(testHttp.post(s"http://localhost:${wiremockPort}/test/post", "testing", Seq()))
+      val res = await(testHttp.post(s"http://localhost:$wiremockPort/test/post", "testing", Seq()))
+      assert(res.isRight)
+      assert(res.exists(_.status == 200))
+    }
+
+    "return a 200 sending a model" in {
+      val body = TestModel("test", 616)
+
+      stubbedPost("/test/post", 200, """{ "test" : "test123" }""")
+      val res = await(testHttp.post(s"http://localhost:$wiremockPort/test/post", body, Seq()))
       assert(res.isRight)
       assert(res.exists(_.status == 200))
     }
 
     "return a 404" in {
       stubbedPost("/test/post", 404, """{ "errorMessage" : "test123" }""")
-      val res = await(testHttp.post(s"http://localhost:${wiremockPort}/test/post", "testing", Seq()))
+      val res = await(testHttp.post(s"http://localhost:$wiremockPort/test/post", "testing", Seq()))
+      assert(res.isLeft)
+      assert(res.left.exists(_.status == 404))
+    }
+
+    "return a 404 sending a model" in {
+      val body = TestModel("test", 616)
+
+      stubbedPost("/test/post", 404, """{ "errorMessage" : "test123" }""")
+      val res = await(testHttp.post(s"http://localhost:$wiremockPort/test/post", body, Seq()))
       assert(res.isLeft)
       assert(res.left.exists(_.status == 404))
     }
@@ -104,14 +135,32 @@ class HttpSpec extends PlaySpec
   "patch" should {
     "return a 200" in {
       stubbedPatch("/test/patch", 200, """{ "test" : "test123" }""")
-      val res = await(testHttp.patch(s"http://localhost:${wiremockPort}/test/patch", "testing", Seq()))
+      val res = await(testHttp.patch(s"http://localhost:$wiremockPort/test/patch", "testing", Seq()))
+      assert(res.isRight)
+      assert(res.exists(_.status == 200))
+    }
+
+    "return a 200 sending a model" in {
+      val body = TestModel("test", 616)
+
+      stubbedPatch("/test/patch", 200, """{ "test" : "test123" }""")
+      val res = await(testHttp.patch(s"http://localhost:$wiremockPort/test/patch", body, Seq()))
       assert(res.isRight)
       assert(res.exists(_.status == 200))
     }
 
     "return a 404" in {
       stubbedPatch("/test/patch", 404, """{ "errorMessage" : "test123" }""")
-      val res = await(testHttp.patch(s"http://localhost:${wiremockPort}/test/patch", "testing", Seq()))
+      val res = await(testHttp.patch(s"http://localhost:$wiremockPort/test/patch", "testing", Seq()))
+      assert(res.isLeft)
+      assert(res.left.exists(_.status == 404))
+    }
+
+    "return a 404 sending a model" in {
+      val body = TestModel("test", 616)
+
+      stubbedPatch("/test/patch", 404, """{ "errorMessage" : "test123" }""")
+      val res = await(testHttp.patch(s"http://localhost:$wiremockPort/test/patch", body, Seq()))
       assert(res.isLeft)
       assert(res.left.exists(_.status == 404))
     }
@@ -120,14 +169,32 @@ class HttpSpec extends PlaySpec
   "put" should {
     "return a 200" in {
       stubbedPut("/test/put", 200, """{ "test" : "test123" }""")
-      val res = await(testHttp.put(s"http://localhost:${wiremockPort}/test/put", "testing", Seq()))
+      val res = await(testHttp.put(s"http://localhost:$wiremockPort/test/put", "testing", Seq()))
+      assert(res.isRight)
+      assert(res.exists(_.status == 200))
+    }
+
+    "return a 200 sending a model" in {
+      val body = TestModel("test", 616)
+
+      stubbedPut("/test/put", 200, """{ "test" : "test123" }""")
+      val res = await(testHttp.put(s"http://localhost:$wiremockPort/test/put", body, Seq()))
       assert(res.isRight)
       assert(res.exists(_.status == 200))
     }
 
     "return a 404" in {
       stubbedPut("/test/put", 404, """{ "errorMessage" : "test123" }""")
-      val res = await(testHttp.put(s"http://localhost:${wiremockPort}/test/put", "testing", Seq()))
+      val res = await(testHttp.put(s"http://localhost:$wiremockPort/test/put", "testing", Seq()))
+      assert(res.isLeft)
+      assert(res.left.exists(_.status == 404))
+    }
+
+    "return a 404 sending a model" in {
+      val body = TestModel("test", 616)
+
+      stubbedPut("/test/put", 404, """{ "errorMessage" : "test123" }""")
+      val res = await(testHttp.put(s"http://localhost:$wiremockPort/test/put", body, Seq()))
       assert(res.isLeft)
       assert(res.left.exists(_.status == 404))
     }
@@ -136,14 +203,14 @@ class HttpSpec extends PlaySpec
   "delete" should {
     "return a 200" in {
       stubbedDelete("/test/delete", 200, """{ "test" : "test123" }""")
-      val res = await(testHttp.delete(s"http://localhost:${wiremockPort}/test/delete", Seq()))
+      val res = await(testHttp.delete(s"http://localhost:$wiremockPort/test/delete", Seq()))
       assert(res.isRight)
       assert(res.exists(_.status == 200))
     }
 
     "return a 404" in {
       stubbedDelete("/test/delete", 404, """{ "errorMessage" : "test123" }""")
-      val res = await(testHttp.delete(s"http://localhost:${wiremockPort}/test/delete", Seq()))
+      val res = await(testHttp.delete(s"http://localhost:$wiremockPort/test/delete", Seq()))
       assert(res.isLeft)
       assert(res.left.exists(_.status == 404))
     }
