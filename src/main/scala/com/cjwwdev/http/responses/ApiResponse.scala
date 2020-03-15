@@ -18,7 +18,7 @@ package com.cjwwdev.http.responses
 
 import org.joda.time.LocalDateTime
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{RequestHeader, Result}
+import play.api.mvc.RequestHeader
 
 trait ApiResponse {
   private def requestProperties(statusCode: Int)(implicit req: RequestHeader): JsObject = Json.obj(
@@ -34,12 +34,13 @@ trait ApiResponse {
     )
   )
 
-  def withJsonResponseBody(statusCode: Int, body: JsValue)(result: JsValue => Result)(implicit req: RequestHeader): Result = {
-    val bodyKey: Int => String = status => if((200 to 299).contains(status)) "body" else "errorMessage"
+  private val bodyKey: Int => String = status => if((200 to 299).contains(status)) "body" else "errorMessage"
+
+  def withJsonResponseBody[T](statusCode: Int, body: JsValue)(result: JsValue => T)(implicit req: RequestHeader): T = {
     result(requestProperties(statusCode) ++ Json.obj(bodyKey(statusCode) -> body) ++ requestStats)
   }
 
-  def withJsonResponseBody(statusCode: Int, body: JsValue, errorMessage: String)(result: JsValue => Result)(implicit req: RequestHeader): Result = {
+  def withJsonResponseBody[T](statusCode: Int, body: JsValue, errorMessage: String)(result: JsValue => T)(implicit req: RequestHeader): T = {
     result(requestProperties(statusCode) ++ Json.obj("errorMessage" -> errorMessage, "errorBody" -> body) ++ requestStats)
   }
 }

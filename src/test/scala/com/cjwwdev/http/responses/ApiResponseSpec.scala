@@ -18,7 +18,7 @@ package com.cjwwdev.http.responses
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsString, JsValue, Json}
-import play.api.mvc.Request
+import play.api.mvc.{Request, Result}
 import play.api.mvc.Results.Ok
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -34,7 +34,7 @@ class ApiResponseSpec extends PlaySpec {
 
   "withJsonResponseBody" should {
     "construct and return a result with a successful json response body" in {
-      val result = contentAsJson(Future(TestResponse.withJsonResponseBody(OK, JsString("test"))(x => Ok(x))))
+      val result = contentAsJson(Future(TestResponse.withJsonResponseBody[Result](OK, JsString("test"))(x => Ok(x))))
       result.\("uri").as[String]       mustBe "/"
       result.\("method").as[String]    mustBe "GET"
       result.\("status").as[Int]       mustBe OK
@@ -43,7 +43,7 @@ class ApiResponseSpec extends PlaySpec {
     }
 
     "construct and return a result with a unsuccessful json response body" in {
-      val result = contentAsJson(Future(TestResponse.withJsonResponseBody(INTERNAL_SERVER_ERROR, JsString("test"))(x => Ok(x))))
+      val result = contentAsJson(Future(TestResponse.withJsonResponseBody[Result](INTERNAL_SERVER_ERROR, JsString("test"))(x => Ok(x))))
       result.\("uri").as[String]          mustBe "/"
       result.\("method").as[String]       mustBe "GET"
       result.\("status").as[Int]          mustBe INTERNAL_SERVER_ERROR
@@ -52,7 +52,7 @@ class ApiResponseSpec extends PlaySpec {
     }
 
     "construct and return a result with a unsuccessful json response body with extra errorBody" in {
-      val result = contentAsJson(Future(TestResponse.withJsonResponseBody(BAD_REQUEST, Json.obj("reason" -> "test"), "test")(x => Ok(x))))
+      val result = contentAsJson(Future(TestResponse.withJsonResponseBody[Result](BAD_REQUEST, Json.obj("reason" -> "test"), "test")(x => Ok(x))))
       result.\("uri").as[String]          mustBe "/"
       result.\("method").as[String]       mustBe "GET"
       result.\("status").as[Int]          mustBe BAD_REQUEST
