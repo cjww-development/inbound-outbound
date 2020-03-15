@@ -29,10 +29,10 @@ trait RequestErrorHandler[T] extends HttpErrorHandler {
 
   implicit val writer: Writeable[T]
 
-  def standardError(rh: RequestHeader): T
-  def notFoundError(rh: RequestHeader): T
-  def serverError(rh: RequestHeader): T
-  def forbiddenError(rh: RequestHeader): Either[T, Call]
+  def standardError(status: Int)(implicit rh: RequestHeader): T
+  def notFoundError(implicit rh: RequestHeader): T
+  def serverError(implicit rh: RequestHeader): T
+  def forbiddenError(implicit rh: RequestHeader): Either[T, Call]
 
   def forbiddenResult(error: Either[T, Call]): Result = {
     error.fold(staticMsg => Forbidden(staticMsg), call => Redirect(call))
@@ -43,7 +43,7 @@ trait RequestErrorHandler[T] extends HttpErrorHandler {
     status match {
       case NOT_FOUND => Future.successful(NotFound(notFoundError(rh)))
       case FORBIDDEN => Future.successful(forbiddenResult(forbiddenError(rh)))
-      case _         => Future.successful(Status(status)(standardError(rh)))
+      case _         => Future.successful(Status(status)(standardError(status)(rh)))
     }
   }
 
