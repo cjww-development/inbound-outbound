@@ -25,10 +25,10 @@ val btVersion: String = Try(ConfigFactory.load().getString("version")).getOrElse
 
 val dependencies: Seq[ModuleID] = Seq(
   "org.slf4j"              %  "slf4j-api"          % "1.7.30",
-  "com.typesafe.play"      %% "play-ws"            % "2.8.0",
+  "com.typesafe.play"      %% "play-ws"            % "2.8.1",
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0"  % Test,
-  "org.mockito"            %  "mockito-core"       % "3.2.4"  % Test,
-  "com.github.tomakehurst" %  "wiremock-jre8"      % "2.25.1" % Test
+  "org.mockito"            %  "mockito-core"       % "3.3.3"  % Test,
+  "com.github.tomakehurst" %  "wiremock-jre8"      % "2.26.3" % Test
 )
 
 lazy val scoverageSettings = Seq(
