@@ -35,18 +35,18 @@ class RequestErrorHandlerSpec extends PlaySpec with FutureAwaits with DefaultAwa
 
   val testJsonRequestErrorHandler: RequestErrorHandler[JsValue] = new RequestErrorHandler[JsValue] {
     override implicit val writer: Writeable[JsValue] = Writeable.writeableOf_JsValue
-    override val forbiddenError: Either[JsValue, Call] = Left(Json.parse("""{ "test" : "forbidden" }"""))
-    override val standardError: JsValue = Json.parse("""{ "test" : "standard" }""")
-    override val notFoundError: JsValue = Json.parse("""{ "test" : "not found" }""")
-    override val serverError: JsValue = Json.parse("""{ "test" : "server error" }""")
+    override def standardError(rh: RequestHeader): JsValue = Json.parse("""{ "test" : "standard" }""")
+    override def notFoundError(rh: RequestHeader): JsValue = Json.parse("""{ "test" : "not found" }""")
+    override def serverError(rh: RequestHeader): JsValue = Json.parse("""{ "test" : "server error" }""")
+    override def forbiddenError(rh: RequestHeader): Either[JsValue, Call] = Left(Json.parse("""{ "test" : "forbidden" }"""))
   }
 
   val testHtmlRequestErrorHandler: RequestErrorHandler[Html] = new RequestErrorHandler[Html] {
     override implicit val writer: Writeable[Html] = Writeable(html => ByteString(html.body), contentType = Some("text/html"))
-    override val forbiddenError: Either[Html, Call] = Right(Call("GET", "/test/redirect"))
-    override val standardError: Html = Html("<p>Standard</p>")
-    override val notFoundError: Html = Html("<p>Not found</p>")
-    override val serverError: Html = Html("<p>Server error</p>")
+    override def standardError(rh: RequestHeader): Html = Html("<p>Standard</p>")
+    override def notFoundError(rh: RequestHeader): Html = Html("<p>Not found</p>")
+    override def serverError(rh: RequestHeader): Html = Html("<p>Server error</p>")
+    override def forbiddenError(rh: RequestHeader): Either[Html, Call] = Right(Call("GET", "/test/redirect"))
   }
 
   val requestHeader: RequestHeader = new RequestHeader {

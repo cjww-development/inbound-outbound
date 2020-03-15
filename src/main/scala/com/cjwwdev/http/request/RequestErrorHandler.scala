@@ -29,10 +29,10 @@ trait RequestErrorHandler[T] extends HttpErrorHandler {
 
   implicit val writer: Writeable[T]
 
-  val standardError: T
-  val notFoundError: T
-  val serverError: T
-  val forbiddenError: Either[T, Call]
+  def standardError(rh: RequestHeader): T
+  def notFoundError(rh: RequestHeader): T
+  def serverError(rh: RequestHeader): T
+  def forbiddenError(rh: RequestHeader): Either[T, Call]
 
   def forbiddenResult(error: Either[T, Call]): Result = {
     error.fold(staticMsg => Forbidden(staticMsg), call => Redirect(call))
@@ -41,14 +41,14 @@ trait RequestErrorHandler[T] extends HttpErrorHandler {
   override def onClientError(rh: RequestHeader, status: Int, msg: String): Future[Result] = {
     logger.warn(s"[onClientError] - Url: ${rh.uri}, status code: $status")
     status match {
-      case NOT_FOUND => Future.successful(NotFound(notFoundError))
-      case FORBIDDEN => Future.successful(forbiddenResult(forbiddenError))
-      case _         => Future.successful(Status(status)(standardError))
+      case NOT_FOUND => Future.successful(NotFound(notFoundError(rh)))
+      case FORBIDDEN => Future.successful(forbiddenResult(forbiddenError(rh)))
+      case _         => Future.successful(Status(status)(standardError(rh)))
     }
   }
 
-  override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] = {
+  override def onServerError(rh: RequestHeader, exception: Throwable): Future[Result] = {
     logger.error(s"[onServerError] - Server Error!", exception)
-    Future.successful(InternalServerError(serverError))
+    Future.successful(InternalServerError(serverError(rh)))
   }
 }

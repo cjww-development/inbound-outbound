@@ -18,28 +18,28 @@ package com.cjwwdev.http.responses
 
 import org.joda.time.LocalDateTime
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{Request, Result}
+import play.api.mvc.{RequestHeader, Result}
 
 trait ApiResponse {
-  private def requestProperties(statusCode: Int)(implicit req: Request[_]): JsObject = Json.obj(
+  private def requestProperties(statusCode: Int)(implicit req: RequestHeader): JsObject = Json.obj(
     "uri"       -> s"${req.uri}",
     "method"    -> s"${req.method.toUpperCase}",
     "requestId" -> s"${req.headers.get("requestId").getOrElse("-")}",
     "status"    -> statusCode
   )
 
-  private def requestStats(implicit req: Request[_]): JsObject = Json.obj(
+  private def requestStats: JsObject = Json.obj(
     "stats" -> Json.obj(
       "requestCompletedAt" -> s"${LocalDateTime.now()}"
     )
   )
 
-  def withJsonResponseBody(statusCode: Int, body: JsValue)(result: JsValue => Result)(implicit req: Request[_]): Result = {
+  def withJsonResponseBody(statusCode: Int, body: JsValue)(result: JsValue => Result)(implicit req: RequestHeader): Result = {
     val bodyKey: Int => String = status => if((200 to 299).contains(status)) "body" else "errorMessage"
     result(requestProperties(statusCode) ++ Json.obj(bodyKey(statusCode) -> body) ++ requestStats)
   }
 
-  def withJsonResponseBody(statusCode: Int, body: JsValue, errorMessage: String)(result: JsValue => Result)(implicit req: Request[_]): Result = {
+  def withJsonResponseBody(statusCode: Int, body: JsValue, errorMessage: String)(result: JsValue => Result)(implicit req: RequestHeader): Result = {
     result(requestProperties(statusCode) ++ Json.obj("errorMessage" -> errorMessage, "errorBody" -> body) ++ requestStats)
   }
 }
