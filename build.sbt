@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 CJWW Development
+ * Copyright 2021 CJWW Development
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,23 +17,25 @@
 import com.typesafe.config.ConfigFactory
 import scoverage.ScoverageKeys
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 val libraryName = "inbound-outbound"
 
-val btVersion: String = Try(ConfigFactory.load().getString("version")).getOrElse("0.1.0")
+val btVersion: String = Try(ConfigFactory.load.getString("version")).getOrElse("0.1.0-local")
 
 val dependencies: Seq[ModuleID] = Seq(
-  "org.slf4j"              %  "slf4j-api"          % "1.7.30",
-  "com.typesafe.play"      %% "play-ws"            % "2.8.1",
-  "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0"  % Test,
-  "org.mockito"            %  "mockito-core"       % "3.3.3"  % Test,
-  "com.github.tomakehurst" %  "wiremock-jre8"      % "2.26.3" % Test
+  "org.slf4j"                    %  "slf4j-api"            % "1.7.30",
+  "com.typesafe.play"            %% "play-ws"              % "2.8.8",
+  "org.scalatestplus.play"       %% "scalatestplus-play"   % "5.1.0"   % Test,
+  "org.mockito"                  %  "mockito-core"         % "3.11.0"  % Test,
+  "com.github.tomakehurst"       %  "wiremock-jre8"        % "2.28.0"  % Test,
+  "org.scalatestplus"            %% "mockito-3-4"          % "3.2.9.0" % Test,
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.12.3"  % Test
 )
 
 lazy val scoverageSettings = Seq(
   ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;/.data/..*;views.*;models.*;.*(AuthService|BuildInfo|Routes).*",
-  ScoverageKeys.coverageMinimum          := 80,
+  ScoverageKeys.coverageMinimumStmtTotal := 80,
   ScoverageKeys.coverageFailOnMinimum    := false,
   ScoverageKeys.coverageHighlighting     := true
 )
@@ -42,14 +44,22 @@ lazy val library = Project(libraryName, file("."))
   .settings(scoverageSettings:_*)
   .settings(
     version                              :=  btVersion,
-    scalaVersion                         :=  "2.13.1",
-    organization                         :=  "com.cjww-dev.libs",
-    resolvers                            ++= Seq("cjww-dev" at "https://dl.bintray.com/cjww-development/releases"),
+    scalaVersion                         :=  "2.13.6",
+    semanticdbEnabled                    :=  true,
+    semanticdbVersion                    :=  scalafixSemanticdb.revision,
+    organization                         :=  "dev.cjww.libs",
     libraryDependencies                  ++= dependencies,
-    bintrayOrganization                  :=  Some("cjww-development"),
-    bintrayReleaseOnPublish in ThisBuild :=  true,
-    bintrayRepository                    :=  "releases",
-    bintrayOmitLicense                   :=  true,
-    scalacOptions           in ThisBuild ++= Seq("-unchecked", "-deprecation"),
-    testOptions             in Test      +=  Tests.Argument("-oF")
+    githubTokenSource                    := (if (Try(ConfigFactory.load.getBoolean("local")).getOrElse(true)) {
+      TokenSource.GitConfig("github.token")
+    } else {
+      TokenSource.Environment("GITHUB_TOKEN")
+    }),
+    githubOwner                          :=  "cjww-development",
+    githubRepository                     :=  libraryName,
+    scalacOptions                        ++= Seq(
+      "-unchecked",
+      "-deprecation",
+      "-Wunused"
+    ),
+    Test / testOptions                   +=  Tests.Argument("-oF")
   )
